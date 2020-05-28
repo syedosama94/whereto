@@ -1,11 +1,47 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+// Limit the requests for which events are
+// triggered.
+//
+// This allos us to have our code being executed
+// only when the following URLs are matched.
+// 
+// ps.: if we were going to dynamically set the
+//      URLs to be matched (used a configuration
+//      page, for example) we'd then specify the 
+//      wildcard <all_urls> and then do the filtering
+//      ourselves.
+const filter = {
+  urls: [
+    "<all_urls>"
+  ],
+}
 
-'use strict';
+// Extra flags for the `onBeforeRequest` event.
+//
+// Here we're specifying that we want our callback
+// function to be executed synchronously such that
+// the request remains blocked until the callback 
+// function returns (having our filtering taking 
+// effect).
+const webRequestFlags = [
+  'blocking',
+];
 
-chrome.runtime.onInstalled.addListener(function() {
-  chrome.storage.sync.set({color: '#3aa757'}, function() {
-    console.log("The color is green.");
-  });
-});
+// Register our function that takes action when a request
+// is initiated and matches the provided filter that we
+// specified in the options.
+//
+// Because we outsourced the URL filtering to chrome itself
+// all we need to do here is always cancel the request (as
+// it matches the filter of unwanted webpages).
+window.chrome.webRequest.onBeforeRequest.addListener(
+  page => {
+    console.log('page blocked - ' + page.url);
+
+    return {
+      cancel: page.url.indexOf('giki') != -1,
+    };
+  },
+  filter,
+  webRequestFlags,
+);
+
